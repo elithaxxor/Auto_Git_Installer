@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 ################################################################################
-# This script enumerates subdirectories (up to two levels deep) within a given
-# folder, then:
+# This script enumerates subdirectories (up to two levels deep) in the current
+# working directory, then:
 #   1) Checks if an install script (install.sh or setup.sh) is present.
 #      - If found, marks it executable and runs it.
 #   2) Otherwise, checks if the subdirectory appears to be Python-based (has
@@ -43,44 +43,32 @@ has_install_script() {
 }
 
 ################################################################################
-# Main logic: Enumerate directories and run installation tasks.
+# Main logic: Enumerate directories in the current working directory
 ################################################################################
 
-install_tools_in_folder() {
-    # We sanitize the argument to remove any leading/trailing quotes.
-    local raw_dir="$1"
-    local sanitized_dir
-    sanitized_dir="$(sed -E 's/^\"+|\"+$//g' <<< "$raw_dir")"
+install_tools_in_cwd() {
+    # Base directory is the current working directory.
+    local base_dir="$(pwd)"
 
-    # If no argument was supplied, or the sanitized argument is empty, error out.
-    if [[ -z "$sanitized_dir" ]]; then
-        error_exit "No target folder was provided. Usage: ./install.sh <target_folder>"
-    fi
+    echo "[INFO]: Searching subdirectories (2 levels deep) in: $base_dir"
 
-    if [[ ! -d "$sanitized_dir" ]]; then
-        error_exit "The path '$sanitized_dir' does not exist or is not a directory."
-    fi
-
-    echo "[INFO]: Searching subdirectories (2 levels deep) in: $sanitized_dir"
-
-    # We find all subdirectories from 1 to 2 levels below $sanitized_dir.
-    # -mindepth 1 = ignore $sanitized_dir itself
+    # We find all subdirectories from 1 to 2 levels below the current dir.
+    # -mindepth 1 = ignore the base_dir itself
     # -maxdepth 2 = search only 2 levels deep
-    mapfile -t folders < <(find "$sanitized_dir" -mindepth 1 -maxdepth 2 -type d)
+    mapfile -t folders < <(find "$base_dir" -mindepth 1 -maxdepth 2 -type d)
 
     if [[ ${#folders[@]} -eq 0 ]]; then
-        echo "[INFO]: No subdirectories found within 2 levels of '$sanitized_dir'."
+        echo "[INFO]: No subdirectories found within 2 levels of '$base_dir'."
         return 0
     fi
 
     for dir in "${folders[@]}"; do
-        # Skip the folder if it is the same as $sanitized_dir or does not exist
-        if [[ "$dir" == "$sanitized_dir" ]]; then
+        # Skip if it matches the base directory exactly
+        if [[ "$dir" == "$base_dir" ]]; then
             continue
         fi
 
-        local name
-        name="$(basename "$dir")"
+        local name="$(basename "$dir")"
         echo "========================================================="
         echo "[INFO]: Checking directory: $dir (name: $name)"
         echo "========================================================="
@@ -88,17 +76,14 @@ install_tools_in_folder() {
         # Check for install script
         if has_install_script "$dir"; then
             echo "[INFO]: Found an installation script in $dir."
-            # Mark them executable quietly (in case no file matches, no error)
             chmod +x "$dir"/*install*.sh "$dir"/*setup*.sh 2>/dev/null || true
 
             # Attempt to run each found script
             for script in "$dir"/install.sh "$dir"/setup.sh; do
                 if [[ -f "$script" ]]; then
                     echo "[INFO]: Running script: $script"
-                    (
-                        cd "$dir"
-                        bash "$script" || echo "[WARNING]: Could not run the installation script for $dir."
-                    )
+                    (cd "$dir" && bash "$script") || \
+                        echo "[WARNING]: Could not run the installation script for $dir."
                 fi
             done
         # Otherwise, check if Python-based
@@ -124,12 +109,14 @@ install_tools_in_folder() {
         fi
     done
 
-    echo "[INFO]: Finished enumerating and processing subdirectories."
+    echo "[INFO]: Finished enumerating and processing subdirectories."  
 }
 
 ################################################################################
 # Script Entry Point
 ################################################################################
+
+# If this script is called directly, run the function to process CWD.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    install_tools_in_folder "$1"
+    install_tools_in_cwd
 fi
