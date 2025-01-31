@@ -102,5 +102,5 @@ install_tools() {
 }
 
 if [[ \"${BASH_SOURCE[0]}\" == \"${0}\" ]]; then
-    install_ddos_tools \"$1\"
+    install_tools \"$1\"
 fi
