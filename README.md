@@ -10,6 +10,13 @@ EXAMPLE USAGE:
     ./install.sh [output_directory]
     If no output_directory is provided, it defaults to \"cloned_repos\".
 
+PRETTIFY GIT LINKS: 
+
+    LETS YOU TAKE THE GIT URL IN A FILE. IT  THEN APPENDS 'GIT' AND WRAPS THE LINE IN QUOTES "  "
+        * Specificy .txt to be cleaned, and txt to write to 
+        * ie prettify_git_links.sh dirty_gits.txt 
+    RESULT: processed_dirt_gits.txt 
+
 BULK LOCAL INSTALLER:
 
     ################################################################################
