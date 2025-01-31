@@ -10,15 +10,17 @@
 #      and installs dependencies.
 ################################################################################
 
-set -e  # Exit on first error
+# Remove or comment out 'set -e' to avoid exiting on any error
+# set -e  # Exit on first error (DISABLED)
 
 ################################################################################
 # Helper Functions
 ################################################################################
 
-error_exit() {
+# A function that logs errors without exiting
+log_error() {
     echo "[ERROR]: $1" 1>&2
-    exit 1
+    # Do NOT exit here; we want to keep going.
 }
 
 # Detect if the given directory is Python-based.
@@ -48,7 +50,8 @@ has_install_script() {
 
 install_tools_in_cwd() {
     # Base directory is the current working directory.
-    local base_dir="$(pwd)"
+    local base_dir
+    base_dir="$(pwd)"
 
     echo "[INFO]: Searching subdirectories (2 levels deep) in: $base_dir"
 
@@ -68,12 +71,14 @@ install_tools_in_cwd() {
             continue
         fi
 
-        local name="$(basename "$dir")"
+        local name
+        name="$(basename "$dir")"
+
         echo "========================================================="
         echo "[INFO]: Checking directory: $dir (name: $name)"
         echo "========================================================="
 
-        # Check for install script
+        # 1) Check for install script
         if has_install_script "$dir"; then
             echo "[INFO]: Found an installation script in $dir."
             chmod +x "$dir"/*install*.sh "$dir"/*setup*.sh 2>/dev/null || true
@@ -82,34 +87,64 @@ install_tools_in_cwd() {
             for script in "$dir"/install.sh "$dir"/setup.sh; do
                 if [[ -f "$script" ]]; then
                     echo "[INFO]: Running script: $script"
-                    (cd "$dir" && bash "$script") || \
-                        echo "[WARNING]: Could not run the installation script for $dir."
+                    if ! (cd "$dir" && bash "$script"); then
+                        # We log an error instead of exiting
+                        log_error "Could not run the installation script for $dir."
+                        # If you want to skip the rest of this directory, you can do:
+                        # continue 2
+                    fi
                 fi
             done
-        # Otherwise, check if Python-based
+
+        # 2) Otherwise, check if Python-based
         elif is_python_repo "$dir"; then
             echo "[INFO]: Detected Python-based directory: $dir"
-            (
-                cd "$dir" || exit 1
-                python3 -m venv venv
-                source venv/bin/activate
-                if [[ -f "requirements.txt" ]]; then
-                    echo "[INFO]: Installing from requirements.txt..."
-                    pip install --upgrade pip
-                    pip install -r requirements.txt
-                elif [[ -f "setup.py" ]]; then
-                    echo "[INFO]: Running setup.py install..."
-                    pip install --upgrade pip
-                    python setup.py install
+
+            # If we can't cd, log an error and skip
+            if ! cd "$dir"; then
+                log_error "Could not cd into $dir. Skipping..."
+                continue
+            fi
+
+            # Create virtual environment
+            if ! python3 -m venv venv; then
+                log_error "Failed to create a virtual environment in $dir."
+                cd - >/dev/null || true
+                continue
+            fi
+
+            # Activate it
+            if ! source venv/bin/activate; then
+                log_error "Failed to activate the virtual environment in $dir."
+                cd - >/dev/null || true
+                continue
+            fi
+
+            # Install dependencies if they exist
+            if [[ -f "requirements.txt" ]]; then
+                echo "[INFO]: Installing from requirements.txt..."
+                pip install --upgrade pip
+                if ! pip install -r requirements.txt; then
+                    log_error "Failed to install dependencies from requirements.txt in $dir."
                 fi
-                deactivate
-            )
+            elif [[ -f "setup.py" ]]; then
+                echo "[INFO]: Running setup.py install..."
+                pip install --upgrade pip
+                if ! python setup.py install; then
+                    log_error "setup.py install failed for $dir."
+                fi
+            fi
+
+            # Deactivate and go back
+            deactivate
+            cd - >/dev/null || true
+
         else
             echo "[INFO]: Not Python-based and no install script found. Skipping."
         fi
     done
 
-    echo "[INFO]: Finished enumerating and processing subdirectories."  
+    echo "[INFO]: Finished enumerating and processing subdirectories."
 }
 
 ################################################################################
