@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Example usage:
+#   ./install.sh [output_directory]
+# If no output_directory is provided, it defaults to \"cloned_repos\".
+
+
 # This script clones specific GitHub repositories that may be Python-based or have their own install script.
 # If a repository has a Python requirements.txt, the script creates a virtual environment and installs it.
 # If a repository contains an install.sh file, we run that script.
@@ -36,7 +41,7 @@ has_install_script() {
 }
 
 # Main install function
-install_ddos_tools() {
+install_tools() {
 
     # List of GitHub repositories to clone
     local repos=(
@@ -85,7 +90,9 @@ install_ddos_tools() {
                 deactivate
                 cd -
             else
-                echo \"[INFO]: $repo_name doesn't appear to be Python-based. Skipping venv setup.\"
+                echo \"[INFO]: Not python based, moving on\"
+
+            #    echo \"[INFO]: $repo_name doesn't appear to be Python-based. Skipping venv setup.\"
             fi
         fi
     done
@@ -93,10 +100,6 @@ install_ddos_tools() {
     echo \"[INFO]: All repositories have been processed.\"
     echo \"[INFO]: Please ensure to review and understand the purpose of each repository before running or installing its contents.\"
 }
-
-# Example usage:
-#   ./install.sh [output_directory]
-# If no output_directory is provided, it defaults to \"cloned_repos\".
 
 if [[ \"${BASH_SOURCE[0]}\" == \"${0}\" ]]; then
     install_ddos_tools \"$1\"
