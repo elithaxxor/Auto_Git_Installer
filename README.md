@@ -4,7 +4,14 @@ Here is the complete .sh script that:
     Checks for an install.sh or setup.sh. If found, marks it executable and runs it.
     If no install script is found, checks if it’s a Python-based repository (i.e., has requirements.txt or setup.py); if so, creates and uses a Python venv to install dependencies.
 
-LOGIC
+EXAMPLE USAGE: 
+
+    Example usage:
+    ./install.sh [output_directory]
+    If no output_directory is provided, it defaults to \"cloned_repos\".
+
+LOGIC:
+
     Clones each repository if not already present. If present, does a git pull to update.
     Checks if there is an install.sh or setup.sh. If so, it executes that script.
     Otherwise, if the repository looks Python-based (it has a requirements.txt or setup.py), creates and activates a Python virtual environment (in a venv folder) and installs dependencies there.
