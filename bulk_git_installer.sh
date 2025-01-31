@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 # Example usage:
 #   ./install.sh [output_directory]
 # If no output_directory is provided, it defaults to "cloned_repos".
