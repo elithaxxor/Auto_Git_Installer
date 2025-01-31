@@ -1,4 +1,4 @@
-Here is the complete .sh script that:
+BULK GIT INSTALLER:
 
     Clones each GitHub repository from your list into a user-defined output directory (default: cloned_repos).
     Checks for an install.sh or setup.sh. If found, marks it executable and runs it.
@@ -9,6 +9,19 @@ EXAMPLE USAGE:
     Example usage:
     ./install.sh [output_directory]
     If no output_directory is provided, it defaults to \"cloned_repos\".
+
+BULK LOCAL INSTALLER:
+
+    ################################################################################
+    # This script enumerates subdirectories (up to two levels deep) within a given
+    # folder, then:
+    #   1) Checks if an install script (install.sh or setup.sh) is present.
+    #      - If found, marks it executable and runs it.
+    #   2) Otherwise, checks if the subdirectory appears to be Python-based (has
+    #      requirements.txt or setup.py). If so, creates a Python virtual environment
+    #      and installs dependencies.
+    ################################################################################
+    
 
 LOGIC:
 
