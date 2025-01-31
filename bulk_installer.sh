@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
 
+
 # Example usage:
 #   ./install.sh [output_directory]
-# If no output_directory is provided, it defaults to \"cloned_repos\".
-
-
-# This script clones specific GitHub repositories that may be Python-based or have their own install script.
-# If a repository has a Python requirements.txt, the script creates a virtual environment and installs it.
-# If a repository contains an install.sh file, we run that script.
-# Repositories are cloned into a user-defined output_dir (defaults to "cloned_repos" if not provided).
+# If no output_directory is provided, it defaults to "cloned_repos".
 
 # Safety checks
 set -e
@@ -46,61 +41,84 @@ install_tools() {
     # List of GitHub repositories to clone
     local repos=(
         "https://github.com/Ha3MrX/DDos-Attack.git"
-     
+        "https://github.com/anti-ddos/Anti-DDOS.git"
+        "https://github.com/HyukIsBack/KARMA-DDoS.git"
+        "https://github.com/Tmpertor/Raven-Storm.git"
+        "https://github.com/4lbH4cker/ALHacking.git"
+        "https://github.com/Ha3MrX/Hacking.git"
+        "https://github.com/D4Vinci/PyFlooder.git"
+        "https://github.com/r3nt0n/torDDoS.git"
+        "https://github.com/PraneethKarnena/DDoS-Scripts.git"
+        "https://github.com/pembriahmad/DDOS.git"
+        "https://github.com/HardyTomas/DDos-Attack-OVH-.git"
+        "https://github.com/saurass/Zombie-DDoS.git"
+        "https://github.com/Err0r-ICA/VARIOUS.git"
+        "https://github.com/DarkSkull777/DarkCool.git"
+        "https://github.com/mishakorzik/AllHackingTools.git"
+        "https://github.com/sammwyy/MikuMikuBeam.git"
+        "https://github.com/palahsu/DDoS-Ripper.git"
     )
 
-    # Create a directory for the cloned repositories
-    local output_dir=\"${1:-cloned_repos}\"  # if 1st argument is not provided, defaults to cloned_repos
-    mkdir -p \"$output_dir\"
+    # We sanitize the argument in case the user surrounds it with quotes.
+    # If the user typed something like ""booty"" (with double quotes), this will remove them.
+    local raw_dir="$1"
+    local sanitized_dir="$(sed -E 's/^\"+|\"+$//g' <<< "$raw_dir")"
 
-    echo \"[INFO]: Starting the cloning process.\"
-    for repo in \"${repos[@]}\"; do
-        local repo_name=$(basename \"$repo\" .git)
-        echo \"[INFO]: Cloning $repo into $output_dir/$repo_name...\"
-        if [ ! -d \"$output_dir/$repo_name\" ]; then
-            git clone \"$repo\" \"$output_dir/$repo_name\" || error_exit \"Failed to clone $repo.\"
-            echo \"[INFO]: Successfully cloned $repo_name.\"
+    # If no argument or sanitized argument is empty, default to cloned_repos.
+    local output_dir="${sanitized_dir:-cloned_repos}"
+
+    mkdir -p "$output_dir"
+
+    echo "[INFO]: Starting the cloning process."
+    for repo in "${repos[@]}"; do
+        local repo_name
+        repo_name="$(basename "$repo" .git)"
+        echo "[INFO]: Cloning $repo into $output_dir/$repo_name..."
+        if [ ! -d "$output_dir/$repo_name" ]; then
+            if ! git clone "$repo" "$output_dir/$repo_name"; then
+                error_exit "Failed to clone $repo."
+            fi
+            echo "[INFO]: Successfully cloned $repo_name."
         else
-            echo \"[INFO]: $repo_name already exists. Pulling latest changes...\"
-            (cd \"$output_dir/$repo_name\" && git pull)
+            echo "[INFO]: $repo_name already exists. Pulling latest changes..."
+            (cd "$output_dir/$repo_name" && git pull)
         fi
 
         # Check for install script
-        if has_install_script \"$output_dir/$repo_name\"; then
-            echo \"[INFO]: Found an installation script in $repo_name. Marking as executable and running it...\"
-            chmod +x \"$output_dir/$repo_name\"/*install*.sh
-            (cd \"$output_dir/$repo_name\" && bash ./*install*.sh) || echo \"[WARNING]: Could not run the installation script for $repo_name.\"
+        if has_install_script "$output_dir/$repo_name"; then
+            echo "[INFO]: Found an installation script in $repo_name. Marking as executable and running it..."
+            chmod +x "$output_dir/$repo_name"/*install*.sh
+            (cd "$output_dir/$repo_name" && bash ./*install*.sh) || \
+              echo "[WARNING]: Could not run the installation script for $repo_name."
         else
-            echo \"[INFO]: No installation script found for $repo_name.\"
-            # Check if it is python-based, if so create venv and install
-            if is_python_repo \"$output_dir/$repo_name\"; then
-                echo \"[INFO]: $repo_name appears to be a Python repo. Creating virtual environment and installing.\"
-                cd \"$output_dir/$repo_name\" || continue
+            echo "[INFO]: No installation script found for $repo_name."
+            # Check if it is python-based; if so create venv and install
+            if is_python_repo "$output_dir/$repo_name"; then
+                echo "[INFO]: $repo_name appears to be a Python repo. Creating virtual environment and installing."
+                cd "$output_dir/$repo_name" || continue
                 python3 -m venv venv
                 source venv/bin/activate
-                if [[ -f \"requirements.txt\" ]]; then
-                    echo \"[INFO]: Installing from requirements.txt...\"
+                if [[ -f "requirements.txt" ]]; then
+                    echo "[INFO]: Installing from requirements.txt..."
                     pip install --upgrade pip
                     pip install -r requirements.txt
-                elif [[ -f \"setup.py\" ]]; then
-                    echo \"[INFO]: Running setup.py install...\"
+                elif [[ -f "setup.py" ]]; then
+                    echo "[INFO]: Running setup.py install..."
                     pip install --upgrade pip
                     python setup.py install
                 fi
                 deactivate
                 cd -
             else
-                echo \"[INFO]: Not python based, moving on\"
-
-            #    echo \"[INFO]: $repo_name doesn't appear to be Python-based. Skipping venv setup.\"
+                echo "[INFO]: $repo_name doesn't appear to be Python-based. Skipping venv setup."
             fi
         fi
     done
 
-    echo \"[INFO]: All repositories have been processed.\"
-    echo \"[INFO]: Please ensure to review and understand the purpose of each repository before running or installing its contents.\"
+    echo "[INFO]: All repositories have been processed."
+    echo "[INFO]: Please ensure to review and understand the purpose of each repository before running or installing its contents."
 }
 
-if [[ \"${BASH_SOURCE[0]}\" == \"${0}\" ]]; then
-    install_tools \"$1\"
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    install_tools "$1"
 fi
